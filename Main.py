@@ -51,7 +51,11 @@ for s in mdp.states:
 
 
 
-prodmdp = mdp.productMDP(dra)
-HS = set([(s,q) for s in gwg.regions['gravel'] for q in dra.states])
-sinkstates = set([(s,q) for s in gwg.regions['pavement'] for q in dra.states])
-submdp = prodmdp.sub_MDP(HS)
+# prodmdp = mdp.productMDP(dra)
+# HS = set([(s,q) for s in gwg.regions['gravel'] for q in dra.states])
+# sinkstates = set([(s,q) for s in gwg.regions['pavement'] for q in dra.states])
+# submdp = prodmdp.sub_MDP(HS)
+from PACMDP import *
+mdp1 = [mdp,mdp]
+
+exploit_explore(gwg,mdp1,[dra,dra],['gravel'],10)

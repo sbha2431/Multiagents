@@ -21,6 +21,7 @@ class NFA(object):
         self.state_transitions = {}
         self.final_states = set([])
         self.state_transitions=dict()
+        self._pre_cache  = dict()
         if alphabet == None:
             self.alphabet=[]
         else:
@@ -45,10 +46,10 @@ class NFA(object):
                 self.states.append(each_next)
         if input_symbol not in self.alphabet:
             self.alphabet.append(input_symbol)
-        if self.state_transitions.has_key((input_symbol,state)):
-            pass
-        else:
-            self.state_transitions[input_symbol,state]=next_state_list
+        #if self.state_transitions.has_key((input_symbol,state)):
+        #    pass
+        #else:
+        self.state_transitions[input_symbol,state]=next_state_list
         return
     
     def get_transition (self, input_symbol, state):
@@ -60,3 +61,16 @@ class NFA(object):
             return self.state_transitions[(input_symbol, state)]
         else:
             return None
+    
+    
+    def get_Pre (self, state):
+
+        """This returns a list of next states given an input_symbol and state.
+        """
+        assert state in self.states
+        pre = []
+        for s in self.states:
+            for a in self.alphabet:
+                if state in self.get_transition(a,s):
+                    pre.append((a,s))
+        return pre

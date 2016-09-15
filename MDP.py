@@ -24,14 +24,7 @@ class MDP(NFA):
 
 
         super(MDP, self).__init__(init, actlist)
-        for a in actlist:
-            for s in states:
-                next_state_list=[]
-                for next_s in states:
-                    if prob[a][states.index(s), states.index(next_s)] != 0:
-                        next_state_list.append(next_s)
-                self.add_transition(a,s, next_state_list)
-
+        
         self.states=states
         self.acc=acc
         self.gamma=gamma
@@ -39,8 +32,20 @@ class MDP(NFA):
         self.prob=prob
         self.AP=AP
         self.L=dict()
+        if len(prob.keys())>0:
+            self.setPost(self.prob)
             
+    
+    def setPost(self,prob):
+        for a in self.alphabet:
+            for s in self.states:
+                next_state_list=[]
+                for next_s in self.states:
+                    if prob[a][self.states.index(s), self.states.index(next_s)] != 0:
+                        next_state_list.append(next_s)
+                self.add_transition(a,s, next_state_list)
 
+    
     def R(self, state):
         "Return a numeric reward for this state."
         return self.reward[state]
@@ -59,7 +64,7 @@ class MDP(NFA):
     def actions(self,state):
         N=len(self.states)
         S=set([])
-        for a in self.actlist:
+        for a in self.alphabet:
             if not np.array_equal(self.T(state,a), np.zeros(N)):
                 S.add(a)
         return S
@@ -115,7 +120,7 @@ class MDP(NFA):
                         
 
  
-    def sub_MDP(self,H,sink=-1,sinkstates = []):
+    def sub_MDP(self,H,sinkstates = []):
         """
         For a given MDP and a subset of the states H, construct a sub-mdp
         that only includes the set of states in H, and a sink states for
@@ -128,13 +133,17 @@ class MDP(NFA):
             return self
         submdp=MDP()
         submdp.states=list(H)
-        submdp.states.append(-1) # -1 is the sink state.
+        submdp.states.append(-1) # -1 is the good sink state.
+        submdp.states.append(-4) # -1 is the bad sink state.
         N=len(submdp.states)
         submdp.alphabet=list(self.alphabet)
         submdp.prob={a:np.zeros((N,N)) for a in submdp.alphabet}
         temp=np.zeros(len(self.states))
+        tempbad = np.zeros(len(self.states))
         for k in sinkstates:
             temp[self.states.index(k)]=1
+        for k in set(self.states) - H - sinkstates:
+            tempbad[self.states.index(k)]=1
         for a in submdp.alphabet:
             for s in H: # except the last sink state.
                 i=submdp.states.index(s)
@@ -143,17 +152,24 @@ class MDP(NFA):
                     j=submdp.states.index(next_s)
                     submdp.prob[a][i,j] = self.P(s,a,next_s)
                     next_s_list.append(next_s)
-                submdp.prob[a][i,-1]= np.inner(self.T(s,a), temp)
-                if submdp.prob[a][i,-1] != 0:
+                submdp.prob[a][i,submdp.states.index(-1)]= np.inner(self.T(s,a), temp)
+                submdp.prob[a][i,submdp.states.index(-4)]= np.inner(self.T(s,a), tempbad)
+                if submdp.prob[a][i,submdp.states.index(-1)] != 0:
                     next_s_list.append(-1)
-                submdp.add_transition(a,s,next_s_list)                    
+                if submdp.prob[a][i,submdp.states.index(-4)] != 0:
+                    next_s_list.append(-4)
+                submdp.add_transition(a,s,next_s_list)
+
             submdp.prob[a][submdp.states.index(-1), submdp.states.index(-1)]=1
+            submdp.prob[a][submdp.states.index(-4), submdp.states.index(-4)]=1
+            submdp.add_transition(a,-1,[-1])
+            submdp.add_transition(a,-4,[-4])
         acc=[]
         for (J,K) in self.acc:
             Jsub = set(H).intersection(J)
             Ksub = set(H).intersection(K)
             acc.append((Jsub,Ksub))
-        acc.append(({},{sink}))
+        acc.append(({-4},{-1}))
         submdp.acc = acc
         return submdp
 

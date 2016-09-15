@@ -107,6 +107,42 @@ class Gridworld():
         s=coords[0]*self.ncols+coords[1]
         return s
         
+    def getDirnProbs(self,reg,dirn,action):
+        if action == 'N':
+            [p0,p1,p2] = self.probOfSuccess[(reg,'N')]
+            if dirn == 'north':
+                p = p0
+            elif dirn == 'northwest': 
+                p = p1
+            elif dirn == 'northeast': 
+                p = p2
+        elif action == 'S':
+            [p0,p1,p2] = self.probOfSuccess[(reg,'S')]
+            if dirn == 'south':
+                p = p0
+            elif dirn == 'southwest': 
+                p = p1
+            elif dirn == 'southeast': 
+                p = p2
+        elif action == 'W':
+            [p0,p1,p2] = self.probOfSuccess[(reg,'W')]
+            if dirn == 'west':
+                p = p0
+            elif dirn == 'southwest': 
+                p = p1
+            elif dirn == 'northwest': 
+                p = p2
+        elif action == 'E':
+            [p0,p1,p2] = self.probOfSuccess[(reg,'E')]
+            if dirn == 'east':
+                p = p0
+            elif dirn == 'southeast': 
+                p = p1
+            elif dirn == 'northeast': 
+                p = p2
+            
+        return p
+        
     def getProbs(self,state, action):
         successors = [] 
             
