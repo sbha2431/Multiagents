@@ -5,7 +5,7 @@ from DFA import *
 from gridworld import *
 import copy
 from MDP import *
-
+from gridworldLearner import *
 ##### Create environment 20x20
 obstacles=[368,348,328,308,288,268,188,168,148,361,362,363,364,365,366,367,181,182,183,184,185,186,187,332,312,292,272,192,172,152,72,52,32,333,334,335,336,337,338,197,198,222,265,283,247,255,296,278,103,23,101,146,36,137,115,76,118,92,112,132]
 initial= [350,378]
@@ -34,8 +34,9 @@ regions['gravel']=set(range(0,nrows*ncols))- regions['pavement']-regions['grass'
 
 
 gwg=Gridworld(initial, ncols, nrows, nagents, targets, obstacles,regions)
-gwg.render()
-gwg.draw_state_labels()
+gwg2 = GridworldGUI(initial, ncols, nrows, nagents,targets, obstacles,regions)
+gwg2.render()
+gwg2.draw_state_labels()
 
 mdp = MDP(initial[0],gwg.actlist,range(nrows*ncols),gwg.prob)
 
@@ -57,5 +58,5 @@ for s in mdp.states:
 # submdp = prodmdp.sub_MDP(HS)
 from PACMDP import *
 mdp1 = [mdp,mdp]
-
-exploit_explore(gwg,mdp1,[dra,dra],['gravel'],10)
+gwl = GridworldLearner(initial,['gravel'],10,0.05,0.9,10,gwg.nrows, gwg.ncols, gwg.nagents, gwg.targets, obstacles,gwg.regions )
+# exploit_explore(gwg,mdp1,[dra,dra],['gravel'],10)

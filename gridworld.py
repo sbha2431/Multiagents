@@ -26,12 +26,13 @@ def wall_pattern(nrows,ncols,endstate=0,pattern="comb"):
     return walls
 
 
-class Gridworld():
+class Gridworld(object):
     # a gridworld with uneven terrain
     def __init__(self, initial=[0], nrows= 8, ncols= 8, nagents = 1, targets=[], obstacles=[],regions = dict()):
         #walls are the obstacles. The edges of the gridworld will be included into the walls.
         #region is a string and can be one of: ['pavement','gravel', 'grass', 'sand']
         self.current=initial
+        self.targets = targets
         self.nrows = nrows
         self.ncols = ncols
         self.nstates=nrows*ncols
@@ -39,7 +40,7 @@ class Gridworld():
         self.nagents = nagents
         self.regions = regions
         self.actlist = ['N','S','W','E']
-        self.targets = targets
+    
         self.left_edge = []                    
         self.right_edge = []
         self.top_edge = []
@@ -66,7 +67,17 @@ class Gridworld():
             for a in self.actlist:
                 self.getProbs(s,a)
         
-
+    def nextDirns(self,a):
+        if a == 'N':
+            nextStates=['north','northeast','northwest']
+        if a == 'S':
+            nextStates=['south','southeast','southwest']
+        if a == 'W':
+            nextStates=['west','southwest','northwest']
+        if a == 'E':
+            nextStates=['east','northeast', 'southeast']
+        return nextStates
+    
     def coords(self,s):
         return (s / self.ncols, s % self.ncols) # the coordinate for state s.
 
@@ -142,7 +153,30 @@ class Gridworld():
                 p = p2
             
         return p
-        
+    
+    def checkdirn(self,s,next_s):
+        ncols = gwg.ncols
+        if next_s == s: # hitting the wall doesn't add up to the count.
+            return 'origin'
+        elif next_s== s-ncols: # North
+            return 'north'
+        elif next_s ==s-ncols-1: #NorthWest
+            return 'northwest'
+        elif next_s ==s-ncols+1: #NorthEast
+            return 'northeast'
+        elif next_s== s+ ncols: #South
+            return 'south'
+        elif next_s== s+ ncols+1: #SouthEast
+            return 'southeast'
+        elif next_s== s+ ncols-1: #SouthWest
+            return 'southwest'
+        elif next_s == s+1: #East
+            return 'east'
+        elif next_s == s-1: #West
+            return 'west'
+        else:
+            return 0    
+
     def getProbs(self,state, action):
         successors = [] 
             
@@ -204,7 +238,10 @@ class Gridworld():
                 return 'sand'
 
     ## Everything from here onwards is for creating the image
-    
+class GridworldGUI(Gridworld):
+    def __init__(self, initial=[0], nrows= 8, ncols= 8, nagents = 1, targets=[], obstacles=[],regions = dict()):
+        super(GridworldGUI, self).__init__(initial, nrows, ncols, nagents, targets, obstacles,regions)
+        
     def render(self,size = 30):
         self.height = self.nrows * size + self.nrows + 1
         self.width = self.ncols * size + self.ncols + 1
