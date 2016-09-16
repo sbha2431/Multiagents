@@ -33,10 +33,10 @@ regions={'pavement': set(rooms['pavement']), 'grass': set(rooms['grass']), 'sand
 regions['gravel']=set(range(0,nrows*ncols))- regions['pavement']-regions['grass']-regions['sand']
 
 
-gwg=Gridworld(initial, ncols, nrows, nagents, targets, obstacles,regions)
-gwg2 = GridworldGUI(initial, ncols, nrows, nagents,targets, obstacles,regions)
-gwg2.render()
-gwg2.draw_state_labels()
+# gwg=Gridworld(initial, ncols, nrows, nagents, targets, obstacles,regions)
+gwg = GridworldGUI(initial, ncols, nrows, nagents,targets, obstacles,regions)
+gwg.render()
+gwg.draw_state_labels()
 
 mdp = MDP(initial[0],gwg.actlist,range(nrows*ncols),gwg.prob)
 
@@ -57,6 +57,12 @@ for s in mdp.states:
 # sinkstates = set([(s,q) for s in gwg.regions['pavement'] for q in dra.states])
 # submdp = prodmdp.sub_MDP(HS)
 from PACMDP import *
+epsilon = 0.05
+delta = 0.9
+T = 10
+N = 1
+commrange = 2
+
 mdp1 = [mdp,mdp]
-# gwl = GridworldLearner(initial,['gravel'],10,0.05,0.9,10,gwg.nrows, gwg.ncols, gwg.nagents, gwg.targets, obstacles,gwg.regions )
-exploit_explore(gwg,mdp1,[dra,dra],['gravel'],10)
+gwl = GridworldLearner(initial,['gravel'],T,epsilon,delta,N,commrange,gwg.nrows, gwg.ncols, gwg.nagents, gwg.targets, obstacles,gwg.regions )
+exploit_explore(gwg,gwl,mdp1,[dra,dra],['gravel'],10)

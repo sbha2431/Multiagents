@@ -155,7 +155,7 @@ class Gridworld(object):
         return p
     
     def checkdirn(self,s,next_s):
-        ncols = gwg.ncols
+        ncols = self.ncols
         if next_s == s: # hitting the wall doesn't add up to the count.
             return 'origin'
         elif next_s== s-ncols: # North

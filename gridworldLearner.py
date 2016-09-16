@@ -17,11 +17,12 @@ unknown_trans = set()
 steps_before_known = dict()
 
 class GridworldLearner(Gridworld):
-    def __init__(self, initial,knownRegion,T,epsilon,delta,N,nrows= 8, ncols= 8, nagents = 1, targets=[], obstacles=[],regions = dict()):
+    def __init__(self, initial,knownRegion,T,epsilon,delta,N,commrange,nrows= 8, ncols= 8, nagents = 1, targets=[], obstacles=[],regions = dict()):
         super(GridworldLearner, self).__init__(initial, nrows, ncols, nagents, [], [],regions)
         self.k = min([(x, y) for (x, y) in confidence_parameters if x >= d],
             key=itemgetter(0))[1]
         self.count = [dict() for x in range(nagents)]
+        self.commrange = commrange
         self.count_sum = [dict() for x in range(nagents)]
         self.count_home = dict()
         self.count_home_sum = dict()
@@ -29,25 +30,26 @@ class GridworldLearner(Gridworld):
         self.sharedcount_sum = [dict() for x in range(nagents)]
         self.sharedcount_home = [dict() for x in range(nagents)]
         self.sharedcount_home_sum = [dict() for x in range(nagents)]
-        self.states = range(self.nstates)
+        self.states = ['origin','north','south', 'west','east','northeast','northwest', 'southeast','southwest']
         self.knownRegions = [set(knownRegion) for n in range(self.nagents)]
         self.H = [set() for n in range(self.nagents)]        
+        self.home = targets[0][len(targets[0])-1]
         
         self.count_home ={(s,a,next_s) : 0 for s in self.states for a in self.actlist for next_s in self.states }
-        count_home_sum= {(s,a) : 0 for s in self.states for a in self.actlist}
+        self.count_home_sum= {(s,a) : 0 for s in self.states for a in self.actlist}
         for n in range(self.nagents):
-            self.count[n] ={(s,a,next_s) : 0 for s in self.states for a in self.actlist for next_s in self.states}
-            self.count_sum[n]= {(s,a) : 0 for s in self.states for a in self.actlist}
-            self.sharedcount_home[n] = {(s,a,next_s) : 0 for s in self.states for a in self.actlist for next_s in self.states}
-            self.sharedcount_home_sum[n]= {(s,a) : 0 for s in self.states for a in self.actlist}
+            self.count[n] ={(s,a,next_s,reg) : 0 for s in self.states for a in self.actlist for next_s in self.states for reg in self.regions.keys()}
+            self.count_sum[n]= {(s,a,reg) : 0 for s in self.states for a in self.actlist for reg in self.regions.keys()}
+            self.sharedcount_home[n] = {(s,a,next_s,reg) : 0 for s in self.states for a in self.actlist for next_s in self.states for reg in self.regions.keys()}
+            self.sharedcount_home_sum[n]= {(s,a,reg) : 0 for s in self.states for a in self.actlist for reg in self.regions.keys()}
             
         for n in range(self.nagents-1):
-            self.sharedcount[n] = {(s,a,next_s) : 0 for s in self.states for a in self.actlist for next_s in self.states}
-            self.sharedcount_sum[n]= {(s,a) : 0 for s in self.states for a in self.actlist}
+            self.sharedcount[n] = {(s,a,next_s,reg) : 0 for s in self.states for a in self.actlist for next_s in self.states for reg in self.regions.keys()}
+            self.sharedcount_sum[n]= {(s,a,reg) : 0 for s in self.states for a in self.actlist for reg in self.regions.keys()}
             
-        regStates=['origin','north','south', 'west','east','northeast','northwest', 'southeast','southwest']
-        aregionMDPprob = {a: np.zeros((len(regStates),len(regStates))) for a in self.actlist} #initialize the transition probability
-        aregionMDP= MDP('origin', list(self.actlist), regStates,aregionMDPprob)
+        
+        aregionMDPprob = {a: np.zeros((len(self.states),len(self.states))) for a in self.actlist} #initialize the transition probability
+        aregionMDP= MDP('origin', list(self.actlist), self.states,aregionMDPprob)
         self.regionMDP = [None]*self.nagents
         for n in range(self.nagents):
             self.regionMDP[n]={regionName: copy.deepcopy(aregionMDP) for regionName in self.regions.keys()}
@@ -61,19 +63,23 @@ class GridworldLearner(Gridworld):
                     self.regionMDP[n][regs].add_transition(a,'origin',next_s_list)
         self.knownGWMDP = [None]*self.nagents
         for n in range(self.nagents):
-            self.knownGWMDP[n] = copy.deepcopy(MDP(self.current[n], list(self.actlist), list(self.states), {a: np.zeros((self.nstates,self.nstates)) for a in self.actlist})) # initialize the known gridworld MDP.
+            self.knownGWMDP[n] = copy.deepcopy(MDP(self.current[n], list(self.actlist), range(self.nrows*ncols), {a: np.zeros((self.nstates,self.nstates)) for a in self.actlist})) # initialize the known gridworld MDP.
             self.update_knownGWMDP(n)       
             self.knownGWMDP[n].setPost(self.knownGWMDP[n].prob)
+    
+    def update_count(self,regionName,agent,a,next_s):
+        self.count[agent]['origin',a,next_s,reg] +=N
+        self.count[agent]['origin',a,next_s] +=N
             
-            
-    def known_trans(self,s,a,next_s, T,agent):
+    def known_trans(self,reg,a,next_s, T,agent):
         # this uses center limit theorem, which requires the sample is sufficiently large.
         # hence, return false if the sample is too small.
-        if count[agent][(s,a,next_s)] < 50*self.N or count_sum[agent][(s,a)] == 0:
+        s = 'origin'
+        if count[agent][(s,a,next_s,reg)] < 50*self.N or count_sum[agent][(s,a,reg)] == 0:
             return False
         # else, we need to compute the mean and var.
-        mean= self.count[agent][(s,a,next_s)]/count_sum[agent][(s,a)]
-        var= self.count[agent][(s,a,next_s)]*(count_sum[agent][(s,a)]-count[agent][(s,a,next_s)])/(math.pow(count_sum[agent][(s,a)],2)*(count_sum[agent][(s,a)]+1))
+        mean= self.count[agent][(s,a,next_s,reg)]/count_sum[agent][(s,a,reg)]
+        var= self.count[agent][(s,a,next_s,reg)]*(count_sum[agent][(s,a)]-count[agent][(s,a,next_s,reg)])/(math.pow(count_sum[agent][(s,a,reg)],2)*(count_sum[agent][(s,a,reg)]+1))
         N=100
         if var*k <= self.epsilon/(1.0*N*self.T): #e/(N*math.pow(T,2)):
             print "known act {} with next {} in {}".format(a,next_s,regionName)
@@ -109,8 +115,8 @@ class GridworldLearner(Gridworld):
         self.knownGWMDP[agent].prob=prob
         return 
     
-    def get_belief_prob(self,agent,s,a,next_s):
-        prob = self.count[agent][(s,a,nextState)]/(self.count_sum[agent][(s,a)])
+    def get_belief_prob(self,agent,s,a,next_s,reg):
+        prob = self.count[agent][(s,a,nextState,reg)]/(self.count_sum[agent][(s,a,reg)])
         return prob
                 
     def update_region_mdp(self,regionName,a,agent):
@@ -128,31 +134,33 @@ class GridworldLearner(Gridworld):
                 
                 j=self.regionMDP[agent][regionName].states.index(nextState)
                 if self.count_sum[agent][('origin',a,regionName)] !=0:
-                    self.regionMDP[agent][regionName].prob[a][i,j] = self.get_belief_prob(agent,'origin',a,nextState)
+                    self.regionMDP[agent][regionName].prob[a][i,j] = self.get_belief_prob(agent,'origin',a,nextState,regionName)
                 else:
                     self.regionMDP[agent][regionName].prob[a][i,j]=0
             if self.known_region(regionName,self.T,agent):
                 self.knownRegions[agent].add(regionName)
+                self.H = self.H.union(self.regions(regionName))
         return
     
         
     def share_count(self):
-        for s in self.states:
-            for act in self.alphabet:
+        s = 'origin'
+        for reg in self.regions.keys():
+            for act in self.actlist:
                 for dirn in self.states:
                     for agent1 in range(self.nagents):
                         for agent2 in range(n+1,self.nagents):
-                            self.count[agent1][s,act,dirn] += (self.count[agent2][s,act,dirn] - self.sharedcount[0][s,act,dirn])
-                            self.count_sum[agent1][(s,act)]+= (self.count_sum[agent2][(s,act)] - self.sharedcount_sum[0][(s,act)])
+                            self.count[agent1][(s,act,dirn,reg)] += (self.count[agent2][(s,act,dirn,reg)] - self.sharedcount[0][(s,act,dirn,reg)])
+                            self.count_sum[agent1][(s,act,reg)]+= (self.count_sum[agent2][(s,act,reg)] - self.sharedcount_sum[0][(s,act,reg)])
         
         for agent1 in range(self.nagents):
             for agent2 in range(n+1,self.nagents):
-                self.count[agent2] = self.count[agent1]
-                self.count_sum[agent2] = self.count_sum[agent1]
+                self.count[agent2] = copy.deepcopy(self.count[agent1])
+                self.count_sum[agent2] = copy.deepcopy(self.count_sum[agent1])
                 
         for n in range(len(sharedcount)):
-            self.sharedcount[n] = count[agent1]
-            self.sharedcount_sum[n] = count_sum[agent1]
+            self.sharedcount[n] = copy.deepcopy(count[agent1])
+            self.sharedcount_sum[n] = copy.deepcopy(count_sum[agent1])
     
     
     def updateGWProbs(self,prob,state,action,probOfSuccess):
@@ -205,5 +213,19 @@ class GridworldLearner(Gridworld):
         for (next_state,p) in successors:
             prob[action][state,next_state]+=p
         return prob
+        
+    def check_comm(self,agent1,agent2):
+        agentstate1 = self.current[agent1]
+        agentstate2 = self.current[agent2]
+        ypos1 = agentstate1/self.ncols
+        xpos1 = agentstate1%self.ncols
+        
+        ypos2 = agentstate2/self.ncols
+        xpos2 = agentstate2%self.ncols
+    
+        if np.sqrt((ypos1-ypos2)**2 + (xpos1-xpos2)**2) <= self.commrange:
+            return True
+        else:
+            return False
     
     
