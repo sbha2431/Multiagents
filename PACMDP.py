@@ -58,11 +58,12 @@ def exploit_explore(gwg,mdp,dra,initKnownRegions,T):
     avoidRegions = [set()]* gwg.nagents
 
     for n in range(gwg.nagents):
-        knownProdMDP[n]=knownGWMDP[n].productMDP(dra[n])
+        gwl.knownGWMDP[n].L = mdp[n].L.copy()
+        knownProdMDP[n]=gwl.knownGWMDP[n].productMDP(dra[n])
         if n > 0:
             avoidRegions[n] = avoidRegions[n].union(exploreRegions[n-1])
 
-        exploreRegions[n] = set(random.sample((set(gwg.regions.keys()) - set(knownRegions[n]) - avoidRegions[n]),1))
+        exploreRegions[n] = set(random.sample((set(gwg.regions.keys()) - set(gwl.knownRegions[n]) - avoidRegions[n]),1))
         exploreStates = set()
         for reg in exploreRegions[n]:
             exploreStates = exploreStates.union(set([(h,s) for h in gwg.regions[reg] for s in dra[n].states]))
