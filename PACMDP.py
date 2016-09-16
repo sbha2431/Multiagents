@@ -7,7 +7,7 @@ from gridworld import *
 # from SymbolicSCC import *
 import copy
 import random
-
+from gridworldLearner import *
 
 def reg_nextStates(a):
     if a == 'N':
@@ -25,7 +25,7 @@ def exploit_explore(gwg,mdp,dra,initKnownRegions,T):
 
     start = time.clock()
 
-   gwl = GridworldLearner(initial,['gravel'],10,0.05,0.9,10,gwg.nrows, gwg.ncols, gwg.nagents, gwg.targets, [],gwg.regions )
+    gwl = GridworldLearner(gwg.current,['gravel'],10,0.05,0.9,10,gwg.nrows, gwg.ncols, gwg.nagents, gwg.targets, [],gwg.regions )
 
 
     V = [None]*gwg.nagents

@@ -58,5 +58,5 @@ for s in mdp.states:
 # submdp = prodmdp.sub_MDP(HS)
 from PACMDP import *
 mdp1 = [mdp,mdp]
-gwl = GridworldLearner(initial,['gravel'],10,0.05,0.9,10,gwg.nrows, gwg.ncols, gwg.nagents, gwg.targets, obstacles,gwg.regions )
-# exploit_explore(gwg,mdp1,[dra,dra],['gravel'],10)
+# gwl = GridworldLearner(initial,['gravel'],10,0.05,0.9,10,gwg.nrows, gwg.ncols, gwg.nagents, gwg.targets, obstacles,gwg.regions )
+exploit_explore(gwg,mdp1,[dra,dra],['gravel'],10)

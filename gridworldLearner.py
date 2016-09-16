@@ -52,7 +52,7 @@ class GridworldLearner(Gridworld):
         for n in range(self.nagents):
             self.regionMDP[n]={regionName: copy.deepcopy(aregionMDP) for regionName in self.regions.keys()}
             for regs in knownRegion:
-                self.H[n] = self.H[n].union(add(self.regions[regs]))
+                self.H[n] = self.H[n].union(self.regions[regs])
                 for a in self.regionMDP[n][regs].alphabet:
                     self.update_region_mdp(regs,a,n)
                     next_s_list = []
