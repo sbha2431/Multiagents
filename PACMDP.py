@@ -25,73 +25,23 @@ def exploit_explore(gwg,mdp,dra,initKnownRegions,T):
 
     start = time.clock()
 
-    count = [dict() for x in range(2)]
-    count_sum = [dict() for x in range(2)]
-    sharedcount = [dict() for x in range(1)]
-    sharedcount_sum = [dict() for x in range(1)]
-    
-    regStates=['origin','north','south', 'west','east','northeast','northwest', 'southeast','southwest']
-    for n in range(gwg.nagents):
-        count[n] ={(s,a,next_s,regionName) : 0 for s in regStates for a in mdp[n].alphabet for next_s in regStates for regionName in gwg.regions.keys() }
-        count_sum[n]= {(s,a,regionName) : 0 for s in regStates for a in mdp[n].alphabet for regionName in gwg.regions.keys()}
-    
-    for n in range(gwg.nagents-1):
-        sharedcount[n] = {(s,a,next_s,regionName) : 0 for s in regStates for a in mdp[n].alphabet for next_s in regStates for regionName in gwg.regions.keys() }
-        sharedcount_sum[n]= {(s,a,regionName) : 0 for s in regStates for a in mdp[n].alphabet for regionName in gwg.regions.keys()}
-    
-    policyHistory=[None]*gwg.nagents
-    log = open(str(gwg.nrows)+'x'+str(gwg.ncols)+str(gwg.nagents)+'agentsResults.txt','w')
-    #Initialize the learned gridworld MDP.
-    aregionMDPstates = ['origin','south','north','east','west','southwest','southeast','northeast','northwest']
-    aregionMDPprob = {a: np.zeros((len(aregionMDPstates),len(aregionMDPstates))) for a in mdp[0].alphabet} #initialize the transition probability
-    aregionMDP= MDP('origin', list(mdp[0].alphabet), aregionMDPstates,aregionMDPprob)
-    regionMDP = [None]*gwg.nagents
-    knownRegions = [set()]*gwg.nagents
-    knownRegionsPre = [set()]*gwg.nagents
-    for n in range(gwg.nagents):
-        regionMDP[n]={regionName: aregionMDP for regionName in gwg.regions.keys()}
-        for regs in initKnownRegions:
-            knownRegions[n].add(regs)
-            knownRegionsPre[n].add(regs)
-            i = regionMDP[n][regs].states.index('origin')
-            for a in regionMDP[n][regs].alphabet:
-                next_s_list = []
-                for nextStates in reg_nextStates(a):
-                    j = regionMDP[n][regs].states.index(nextStates)
-                    regionMDP[n][regs].prob[a][i,j] = gwg.getDirnProbs(regs,nextStates,a)
-                    next_s_list.append(nextStates)
-                regionMDP[n][regs].add_transition(a,'origin',next_s_list)
+   gwl = GridworldLearner(initial,['gravel'],10,0.05,0.9,10,gwg.nrows, gwg.ncols, gwg.nagents, gwg.targets, [],gwg.regions )
 
 
-
-    knownGWMDP = [None]*gwg.nagents
     V = [None]*gwg.nagents
     trueProdMDP = [None]*gwg.nagents
     current_s = [None]*gwg.nagents
-    H = [None]*gwg.nagents
     HS = [None]*gwg.nagents
     Hpre = [None]*gwg.nagents
     for n in range(gwg.nagents):
-        knownGWMDP[n] = copy.deepcopy(MDP(int(gwg.current[n]), list(mdp[n].alphabet), list(mdp[n].states), {a: np.zeros((gwg.nstates,gwg.nstates)) for a in mdp[n].alphabet})) # initialize the known gridworld MDP.
-        knownGWMDP[n].L = mdp[n].L.copy()
-        for regs in knownRegions[n]:
-            for s in gwg.regions[regs]:
-                for a in gwg.actlist:
-                    knownGWMDP[n].prob[a][s] = copy.deepcopy(mdp[n].prob[a][s])
-        knownGWMDP[n].setPost(knownGWMDP[n].prob)
-        
         V.append(dict([])) #initialize the value function.
-        H[n] = set()
-        for kr in knownRegions[n]:
-            H[n] = H[n].union(gwg.regions[kr])
         trueProdMDP[n] = copy.deepcopy(mdp[n].productMDP(dra[n]))
         current_s[n]=trueProdMDP[n].initial_state
-        HS[n]= set([(h,s) for h in H[n] for s in dra[n].states])
-        Hpre[n]=H[n].copy() # record the set of known states. 
+        HS[n]= set([(h,s) for h in gwl.H[n] for s in dra[n].states])
+        Hpre[n]=gwl.H[n].copy() # record the set of known states. 
 
     iter_count = [0]*gwg.nagents # the number of actions taken from the begining. We limit the number of iter_counts by placing an upper bound limit.
     limit = 200000
-    
     
     knownProdMDP = [None]*gwg.nagents
     subknownProdMDP = [None]*gwg.nagents
@@ -103,8 +53,6 @@ def exploit_explore(gwg,mdp,dra,initKnownRegions,T):
     value = [None]*gwg.nagents
     commagent = 0
     collagent = 0
-
-
     
     exploreRegions = [set()]*gwg.nagents
     avoidRegions = [set()]* gwg.nagents

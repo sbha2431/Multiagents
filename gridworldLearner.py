@@ -31,6 +31,7 @@ class GridworldLearner(Gridworld):
         self.sharedcount_home_sum = [dict() for x in range(nagents)]
         self.states = range(self.nstates)
         self.knownRegions = [set(knownRegion) for n in range(self.nagents)]
+        self.H = [set() for n in range(self.nagents)]        
         
         self.count_home ={(s,a,next_s) : 0 for s in self.states for a in self.actlist for next_s in self.states }
         count_home_sum= {(s,a) : 0 for s in self.states for a in self.actlist}
@@ -51,6 +52,7 @@ class GridworldLearner(Gridworld):
         for n in range(self.nagents):
             self.regionMDP[n]={regionName: copy.deepcopy(aregionMDP) for regionName in self.regions.keys()}
             for regs in knownRegion:
+                self.H[n] = self.H[n].union(add(self.regions[regs]))
                 for a in self.regionMDP[n][regs].alphabet:
                     self.update_region_mdp(regs,a,n)
                     next_s_list = []
