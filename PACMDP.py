@@ -62,10 +62,11 @@ def exploit_explore(gwg,gwl,mdp,dra,initKnownRegions,T):
         for s in knownProdMDP[n].states:
             if s in HS[n]:
                 policyT[n][s]=policy_init[n][s]
-            elif s == -1:
-                policyT[n][s]=policy_init[n][-1]
-            elif s == -4:
-                policyT[n][s]=policy_init[n][-4] 
+            # elif s == -1:
+            #     policyT[n][s]=policy_init[n][-1]
+            # elif s == -4:
+            else:
+                policyT[n][s]=policy_init[n][-1] 
     for n in range(gwg.nagents):
         print "agent ", n, "exploring ", exploreRegions[n]
     
@@ -87,17 +88,17 @@ def exploit_explore(gwg,gwl,mdp,dra,initKnownRegions,T):
                 if gwl.check_comm(n,m):
                     gwl.share_count()
                     commagent += 0
-                    if gwg.getStateRegion(current_s[n][0]) == gwg.getStateRegion(current_s[k][0]) and (gwg.getStateRegion(current_s[k][0]) not in knownRegions[n] or gwg.getStateRegion(current_s[k][0]) not in knownRegions[k]):
+                    if gwg.getStateRegion(current_s[n][0]) == gwg.getStateRegion(current_s[m][0]) and (gwg.getStateRegion(current_s[n][0]) not in gwl.knownRegions[n] or gwg.getStateRegion(current_s[m][0]) not in gwl.knownRegions[m]):
                         unknowncommagent = 0
                     for a in gwl.actlist:
                         gwl.update_region_mdp(gwl.getStateRegion(current_s[n][0]),a,n)
                         gwl.update_region_mdp(gwl.getStateRegion(current_s[m][0]),a,m)
-                    gwl.knownGWMDP[l]=gwl.update_knownGWMDP(n)
-                    gwl.knownGWMDP[l]=gwl.update_knownGWMDP(m)
-                    if current_s[n][1] != 'C':
-                        current_s[n] = (current_s[n][0],'Home')
-                    if current_s[m][1] != 'C':
-                        current_s[m] = (current_s[n][0],'Home')
+                    gwl.update_knownGWMDP(n)
+                    gwl.update_knownGWMDP(m)
+                    # if current_s[n][1] != 'C':
+                    #     current_s[n] = (current_s[n][0],'Home')
+                    # if current_s[m][1] != 'C':
+                    #     current_s[m] = (current_s[n][0],'Home')
                             
                             
         for n in range(gwg.nagents):
@@ -141,13 +142,13 @@ def exploit_explore(gwg,gwl,mdp,dra,initKnownRegions,T):
                 gwl.update_count(regionName,n, act, dirn)
                 gwl.update_region_mdp(regionName, act, n)
                 gwl.update_knownGWMDP(n)
-                if gwl.knownGWMDP[n].P(current_s[n][0],a,next_s[0]) == 1:
-                    current_s[agentnum] = trueProdMDP[agentnum].init
-                    resets[n][0]+=1
-                    if current_s[agentnum] in Win[agentnum]:
-                        resets[agentnum][1]+=1
-                else:
-                    current_s[n] = next_s
+            if gwl.knownGWMDP[n].P(current_s[n][0],act,next_s[0]) == 1:
+                current_s[agentnum] = trueProdMDP[agentnum].init
+                resets[n][0]+=1
+                if current_s[agentnum] in Win[agentnum]:
+                    resets[agentnum][1]+=1
+            else:
+                current_s[n] = next_s
             gwg.current[n] = current_s[n][0]
             gwl.current[n] = current_s[n][0]
             gwg.render()

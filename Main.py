@@ -39,7 +39,7 @@ gwg.render()
 gwg.draw_state_labels()
 
 mdp = MDP(initial[0],gwg.actlist,range(nrows*ncols),gwg.prob)
-
+mdp2 = MDP(initial[1],gwg.actlist,range(nrows*ncols),gwg.prob)
 execfile('DFA.py')
 region_map={targets[0][0]:'1', targets[0][1]: '2',targets[0][2]: '3'}
 for w in obstacles:

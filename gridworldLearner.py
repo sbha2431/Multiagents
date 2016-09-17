@@ -34,6 +34,7 @@ class GridworldLearner(Gridworld):
         self.knownRegions = [set(knownRegion) for n in range(self.nagents)]
         self.H = [set() for n in range(self.nagents)]        
         self.home = targets[0][len(targets[0])-1]
+        self.N = N
         
         self.count_home ={(s,a,next_s) : 0 for s in self.states for a in self.actlist for next_s in self.states }
         self.count_home_sum= {(s,a) : 0 for s in self.states for a in self.actlist}
@@ -68,8 +69,8 @@ class GridworldLearner(Gridworld):
             self.knownGWMDP[n].setPost(self.knownGWMDP[n].prob)
     
     def update_count(self,regionName,agent,a,next_s):
-        self.count[agent]['origin',a,next_s,reg] +=N
-        self.count[agent]['origin',a,next_s] +=N
+        self.count[agent]['origin',a,next_s,regionName] +=self.N
+        self.count[agent]['origin',a,next_s] +=self.N
             
     def known_trans(self,reg,a,next_s, T,agent):
         # this uses center limit theorem, which requires the sample is sufficiently large.
@@ -149,18 +150,18 @@ class GridworldLearner(Gridworld):
             for act in self.actlist:
                 for dirn in self.states:
                     for agent1 in range(self.nagents):
-                        for agent2 in range(n+1,self.nagents):
+                        for agent2 in range(agent1+1,self.nagents):
                             self.count[agent1][(s,act,dirn,reg)] += (self.count[agent2][(s,act,dirn,reg)] - self.sharedcount[0][(s,act,dirn,reg)])
                             self.count_sum[agent1][(s,act,reg)]+= (self.count_sum[agent2][(s,act,reg)] - self.sharedcount_sum[0][(s,act,reg)])
         
         for agent1 in range(self.nagents):
-            for agent2 in range(n+1,self.nagents):
+            for agent2 in range(agent1+1,self.nagents):
                 self.count[agent2] = copy.deepcopy(self.count[agent1])
                 self.count_sum[agent2] = copy.deepcopy(self.count_sum[agent1])
                 
-        for n in range(len(sharedcount)):
-            self.sharedcount[n] = copy.deepcopy(count[agent1])
-            self.sharedcount_sum[n] = copy.deepcopy(count_sum[agent1])
+        for n in range(len(self.sharedcount)):
+            self.sharedcount[n] = copy.deepcopy(self.count[agent1])
+            self.sharedcount_sum[n] = copy.deepcopy(self.count_sum[agent1])
     
     
     def updateGWProbs(self,prob,state,action,probOfSuccess):
