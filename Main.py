@@ -9,6 +9,7 @@ from gridworldLearner import *
 ##### Create environment 20x20
 obstacles=[368,348,328,308,288,268,188,168,148,361,362,363,364,365,366,367,181,182,183,184,185,186,187,332,312,292,272,192,172,152,72,52,32,333,334,335,336,337,338,197,198,222,265,283,247,255,296,278,103,23,101,146,36,137,115,76,118,92,112,132]
 initial= [350,378]
+# obstacles = []
 nagents=2
 commrange = 3
 targets = [None]*nagents
@@ -17,8 +18,8 @@ nrows=20
 nagents=2
 commrange = 2
 targets = [None]*nagents
-targets[0]=[26,25,356]
-targets[1] = [34,35,356]
+targets[0]=[26,356]
+targets[1] = [34,356]
 
 ## Set up regions
 rooms = {'pavement':[],'grass':[],'sand':[]}
@@ -37,18 +38,23 @@ regions['gravel']=set(range(0,nrows*ncols))- regions['pavement']-regions['grass'
 gwg = GridworldGUI(initial, ncols, nrows, nagents,targets, obstacles,regions)
 gwg.render()
 gwg.draw_state_labels()
-
-mdp = MDP(initial[0],gwg.actlist,range(nrows*ncols),gwg.prob)
-mdp2 = MDP(initial[1],gwg.actlist,range(nrows*ncols),gwg.prob)
 execfile('DFA.py')
-region_map={targets[0][0]:'1', targets[0][1]: '2',targets[0][2]: '3'}
-for w in obstacles:
-    region_map[w] = '4' # never hitting the walls
-for s in mdp.states:
-    if s in region_map.keys():
-        mdp.labeling(s,region_map[s])
-    else:
-        mdp.labeling(s,'E') 
+mdp1 = MDP(initial[0],gwg.actlist,range(nrows*ncols),gwg.prob)
+mdp2 = MDP(initial[1],gwg.actlist,range(nrows*ncols),gwg.prob)
+knownRegion = ['gravel']
+mdp = [mdp1,mdp2]
+
+for n in range(gwg.nagents):
+    region_map={targets[n][0]:'W', targets[n][1]: 'H'}
+    for w in obstacles:
+        region_map[w] = 'C' # never hitting the walls
+    for s in mdp[n].states:
+        if s in region_map.keys():
+            mdp[n].labeling(s,region_map[s])
+        elif s in regions[knownRegion[0]]:
+            mdp[n].labeling(s,'E') 
+        else:
+            mdp[n].labeling(s,'E') 
 
 
 
@@ -59,10 +65,9 @@ for s in mdp.states:
 from PACMDP import *
 epsilon = 0.05
 delta = 0.9
-T = 10
-N = 1
+T = 30
+N = 300
 commrange = 2
 
-mdp1 = [mdp,mdp]
-gwl = GridworldLearner(initial,['gravel'],T,epsilon,delta,N,commrange,gwg.nrows, gwg.ncols, gwg.nagents, gwg.targets, obstacles,gwg.regions )
-exploit_explore(gwg,gwl,mdp1,[dra,dra],['gravel'],10)
+gwl = GridworldLearner(initial,knownRegion,T,epsilon,delta,N,commrange,gwg.nrows, gwg.ncols, gwg.nagents, gwg.targets, obstacles,gwg.regions )
+exploit_explore(gwg,gwl,mdp,[dra,dra],['gravel'],T)

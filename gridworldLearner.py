@@ -2,25 +2,17 @@ from __future__ import division
 from gridworld import *
 from MDP import *
 from operator import itemgetter
+import math
 
 confidence_parameters = [(0.9, 1.645),
                          (0.95, 1.96),
                          (0.98, 2.326),
                          (0.99, 2.576)]
-n_states = 0
-T = 0
-e = 0.01
-d = 0.95
-count = dict()
-count_sum = dict()
-unknown_trans = set()
-steps_before_known = dict()
 
 class GridworldLearner(Gridworld):
     def __init__(self, initial,knownRegion,T,epsilon,delta,N,commrange,nrows= 8, ncols= 8, nagents = 1, targets=[], obstacles=[],regions = dict()):
-        super(GridworldLearner, self).__init__(initial, nrows, ncols, nagents, [], [],regions)
-        self.k = min([(x, y) for (x, y) in confidence_parameters if x >= d],
-            key=itemgetter(0))[1]
+        super(GridworldLearner, self).__init__(initial, nrows, ncols, nagents, targets, obstacles,regions)
+        
         self.count = [dict() for x in range(nagents)]
         self.commrange = commrange
         self.count_sum = [dict() for x in range(nagents)]
@@ -35,6 +27,11 @@ class GridworldLearner(Gridworld):
         self.H = [set() for n in range(self.nagents)]        
         self.home = targets[0][len(targets[0])-1]
         self.N = N
+        self.T = T
+        self.e = epsilon
+        self.d = delta
+        self.k = min([(x, y) for (x, y) in confidence_parameters if x >= self.d],
+            key=itemgetter(0))[1]
         
         self.count_home ={(s,a,next_s) : 0 for s in self.states for a in self.actlist for next_s in self.states }
         self.count_home_sum= {(s,a) : 0 for s in self.states for a in self.actlist}
@@ -70,20 +67,20 @@ class GridworldLearner(Gridworld):
     
     def update_count(self,regionName,agent,a,next_s):
         self.count[agent]['origin',a,next_s,regionName] +=self.N
-        self.count[agent]['origin',a,next_s] +=self.N
+        self.count_sum[agent]['origin',a,regionName] +=self.N
             
-    def known_trans(self,reg,a,next_s, T,agent):
+    def known_trans(self,reg,a,next_s, agent):
         # this uses center limit theorem, which requires the sample is sufficiently large.
         # hence, return false if the sample is too small.
         s = 'origin'
-        if count[agent][(s,a,next_s,reg)] < 50*self.N or count_sum[agent][(s,a,reg)] == 0:
+        if self.count[agent][(s,a,next_s,reg)] < 50*self.N or self.count_sum[agent][(s,a,reg)] == 0:
             return False
         # else, we need to compute the mean and var.
-        mean= self.count[agent][(s,a,next_s,reg)]/count_sum[agent][(s,a,reg)]
-        var= self.count[agent][(s,a,next_s,reg)]*(count_sum[agent][(s,a)]-count[agent][(s,a,next_s,reg)])/(math.pow(count_sum[agent][(s,a,reg)],2)*(count_sum[agent][(s,a,reg)]+1))
+        mean= self.count[agent][(s,a,next_s,reg)]/self.count_sum[agent][(s,a,reg)]
+        var= self.count[agent][(s,a,next_s,reg)]*(self.count_sum[agent][(s,a,reg)]-self.count[agent][(s,a,next_s,reg)])/(math.pow(self.count_sum[agent][(s,a,reg)],2)*(self.count_sum[agent][(s,a,reg)]+1))
         N=100
-        if var*k <= self.epsilon/(1.0*N*self.T): #e/(N*math.pow(T,2)):
-            print "known act {} with next {} in {}".format(a,next_s,regionName)
+        if var*self.k <= self.e/(1.0*N*self.T): #e/(N*math.pow(T,2)):
+            # print "known act {} with next state {} in {}".format(a,next_s,reg)
             return True
         else:
             return False
@@ -97,7 +94,7 @@ class GridworldLearner(Gridworld):
     
     def known_region(self,regionName,agent):
         for a in self.actlist:
-            for nextState in self.next_Dirns(a):
+            for nextState in self.nextDirns(a):
                 if not self.known_trans(regionName, a, nextState,agent):
                     return False
         return True
@@ -117,7 +114,7 @@ class GridworldLearner(Gridworld):
         return 
     
     def get_belief_prob(self,agent,s,a,next_s,reg):
-        prob = self.count[agent][(s,a,nextState,reg)]/(self.count_sum[agent][(s,a,reg)])
+        prob = self.count[agent][(s,a,next_s,reg)]/(self.count_sum[agent][(s,a,reg)])
         return prob
                 
     def update_region_mdp(self,regionName,a,agent):
@@ -138,9 +135,9 @@ class GridworldLearner(Gridworld):
                     self.regionMDP[agent][regionName].prob[a][i,j] = self.get_belief_prob(agent,'origin',a,nextState,regionName)
                 else:
                     self.regionMDP[agent][regionName].prob[a][i,j]=0
-            if self.known_region(regionName,self.T,agent):
+            if self.known_region(regionName,agent):
                 self.knownRegions[agent].add(regionName)
-                self.H = self.H.union(self.regions(regionName))
+                self.H[agent] = self.H[agent].union(self.regions(regionName))
         return
     
         

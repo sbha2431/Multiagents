@@ -142,6 +142,7 @@ class MDP(NFA):
         tempbad = np.zeros(len(self.states))
         for k in sinkstates:
             temp[self.states.index(k)]=1
+            # tempgoodbad[self.states.index(k)]=1
         for k in set(self.states) - H - sinkstates:
             tempbad[self.states.index(k)]=1
         for a in submdp.alphabet:
@@ -152,8 +153,12 @@ class MDP(NFA):
                     j=submdp.states.index(next_s)
                     submdp.prob[a][i,j] = self.P(s,a,next_s)
                     next_s_list.append(next_s)
-                submdp.prob[a][i,submdp.states.index(-1)]= np.inner(self.T(s,a), temp)
-                submdp.prob[a][i,submdp.states.index(-4)]= np.inner(self.T(s,a), tempbad)
+                
+                if s[1] == 'Home':
+                    submdp.prob[a][i,submdp.states.index(-1)]= np.inner(self.T(s,a), temp)
+                else:
+                    submdp.prob[a][i,submdp.states.index(-4)]= np.inner(self.T(s,a), temp)
+                submdp.prob[a][i,submdp.states.index(-4)]+= np.inner(self.T(s,a), tempbad)
                 if submdp.prob[a][i,submdp.states.index(-1)] != 0:
                     next_s_list.append(-1)
                 if submdp.prob[a][i,submdp.states.index(-4)] != 0:
@@ -169,7 +174,7 @@ class MDP(NFA):
             Jsub = set(H).intersection(J)
             Ksub = set(H).intersection(K)
             acc.append((Jsub,Ksub))
-        acc.append(({-4},{-1}))
+        acc.append(({-2,-4},{-1}))
         submdp.acc = acc
         return submdp
 
